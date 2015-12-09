@@ -29,20 +29,22 @@ typedef enum {
 typedef enum {
   CALIBRATE,
   IDLE,
-  TURN_LEFT,
-  TURN_RIGHT,
-  SWIVEL_OFF
+  TURN,
+  SWIVEL_OFF,
+  VERIFY
 } SWIVEL;
 //#################
 //static variables
 //#################
-//states
-static WATER waterstate = DETECT_MOISTURE;
-static int duty_cycle = 0;
-static int count = 0;
-//swiveling state variables
-static SWIVEL swivelstate = IDLE;
-static int angle = 0;
+//Water state initialization
+static WATER waterstate;
+static int duty_cycle;
+static int count;
+//Awiveling state initialization
+static SWIVEL swivelstate;
+static int angle;
+static int verifyCount;
+
 //calibrated values for sensors? since they're all different, may have different values...
 //let calibrated be the minimum light per sensor after turning 360
 //moisture might not need calibration
@@ -75,7 +77,6 @@ void setup() {
   pinMode(TOGGLE, INPUT);
   pinMode(MOTOR, OUTPUT);
   pinMode(PUMP, OUTPUT);
- 
 }
 
 //pass in 1 for ON, 0 for turning pump off
@@ -91,7 +92,7 @@ void pump(int on_off){
 //for now, 0 = turn, 1 = don't
 //will need to change later
 void motor(int degrees){
- //todo
+ //todo: implement degrees
  if ()degrees == 0) {
    digitalWrite(MOTOR, HIGH);
  } else {
@@ -110,21 +111,21 @@ int read_light(int light_sensor){
   //todo: test
   int val = analogRead(light_sensor);
   switch (light_sensor) {
- case FRONT_LIGHT:
-   running_front = (alpha * ((float) val)) + ((1 - alpha) * (running_front));
-   return (int) running_front;
- case BACK_LIGHT:
-   running_back = (alpha * ((float) val)) + ((1 - alpha) * (running_back));
-   return (int) running_back;
- case RIGHT_LIGHT:
-   running_right = (alpha * ((float) val)) + ((1 - alpha) * (running_right));
-   return (int) running_right;
- case LEFT_LIGHT:
-   running_left = (alpha * ((float) val)) + ((1 - alpha) * (running_left));
-   return (int) running_left;
- default:
-   Serial.println("Something is horribly horribly wrong!\n");
-   return 20000;
+  case FRONT_LIGHT:
+    running_front = (alpha * ((float) val)) + ((1 - alpha) * (running_front));
+    return (int) running_front;
+  case BACK_LIGHT:
+    running_back = (alpha * ((float) val)) + ((1 - alpha) * (running_back));
+    return (int) running_back;
+  case RIGHT_LIGHT:
+    running_right = (alpha * ((float) val)) + ((1 - alpha) * (running_right));
+    return (int) running_right;
+  case LEFT_LIGHT:
+    running_left = (alpha * ((float) val)) + ((1 - alpha) * (running_left));
+    return (int) running_left;
+  default:
+    Serial.println("Something is horribly horribly wrong!\n");
+    return 20000;
   }
 }
 
@@ -137,7 +138,7 @@ void toggle_swivel(int on_off) {
   }
   else {
     static SWIVEL swivelstate = CALIBRATE;
-}
+  }
 
 //returns number of degrees box should swivel to maximize light exposure
 int get_number_of_degrees_to_swivel(){
@@ -173,80 +174,84 @@ void loop() {
   digitalWrite(9, LOW);	// turn the LED off by making the voltage LOW
   delay(2000);          	// wait for a second
   */
-  delay(iterdelay);
-  switch(waterstate) {
+  delay(iterdelay); //delays the loop
+
+  
+switch(waterstate) {
   case DETECT_MOISTURE:
   {
-	int moisture_reading = read_moisture();
- int desired = desired_moisture_level();
-	Serial.println(moist);
- duty_cycle = pump_on_for(moisture_reading, desired);
- //if duty_cycle is 0, never go into watering state
-	if (duty_cycle == 0) {
-  waterstate = WATEROFF;
- } else {
-  waterstate = WATERON;
-  pump(1);
- }
-	count = 1;
-	break;
+      int moisture_reading = read_moisture();
+      int desired = desired_moisture_level();
+      Serial.println(moisture_reading);
+      duty_cycle = pump_on_for(moisture_reading, desired);
+      //if duty_cycle is 0, never go into watering state
+      if (duty_cycle == 0) {
+        waterstate = WATEROFF;
+       } 
+       else {
+         waterstate = WATERON;
+         pump(1);
+       }
+       count = 1;
+       break;
   }
   case WATERON:
  //DETECT_MOISTURE is 1 iteration, if dutycycle = 100, then should transition on 99 so it's still on for iteration 100
  //if dutycycle = 99, pump should turn off and go to DETECT_MOISTURE so iteration 100 is off
- if (count == 99) {
-  waterstate = DETECT_MOISTURE;
-  if (duty_cycle == 99) {
-   pump(0);
-  }
- } else if (count >= duty_cycle) {
-  	waterstate = WATEROFF;
-  	pump(0);
-   count++;
-	} else {
-  	count++;
-	}
-	break;
+  if (count == 99) { //at 99th time step of machine
+    waterstate = DETECT_MOISTURE;
+    if (duty_cycle == 99) {
+      pump(0);
+    }
+  } else {
+      if (count >= duty_cycle) {
+        waterstate = WATEROFF;
+        pump(0);
+      }
+      count++;
+    }
+  break;
+  
   case WATEROFF:
-	if (count >= 99) {
-  	waterstate = DETECT_MOISTURE;
-	} else {
-  	count++;
-	}
-	break;
+    if (count >= 99) {
+      waterstate = DETECT_MOISTURE;
+    }
+    else {
+      count++;
+    }
+    break;
   }
  
   //FSM for swiveling
   switch(swivelstate) {
-   case CALIBRATE:
-	//todo: implement
- 	break;
+    case CALIBRATE:
+      //todo: implement
+    break;
   
-   case IDLE:
-   {
-	//todo: finish
-  int front = read_light(FRONT_LIGHT){
-  int back  = read_light(BACK_LIGHT);
-  int left  = read_light(LEFT_LIGHT);
-  int right = read_light(RIGHT_LIGHT);
-  if (front < right) {
-   
+    case IDLE:
+    {
+    //todo: finish
+      int front = read_light(FRONT_LIGHT);
+      int back  = read_light(BACK_LIGHT);
+      int left  = read_light(LEFT_LIGHT);
+      int right = read_light(RIGHT_LIGHT);
+      if (front < right) {
+        swivelstate = TURNRIGHT;
+      }
+      break;
+    }
+    case VERIFY:
+    
+    case TURNLEFT:
+	//todo: implement
+    break;
+    case TURNRIGHT:
+	//todo: implement
+    break;
+    case SWIVELOFF:
+	//todo: implement
+    break;
   }
-  
-  
-  break;
-   }
-   case TURNLEFT:
-	//todo: implement
- 	break;
-   case TURNRIGHT:
-	//todo: implement
- 	break;
-   case SWIVELOFF:
-	//todo: implement
- 	break;
-  }
- 
 }
 
 
