@@ -1,6 +1,6 @@
 
 //testing yaosdfweiohagpiodgpariogzhk
-
+#include <Stepper.h>
 //sensors
 int BACK_LIGHT_LIGHT = 0;
 int FRONT_LIGHT = 0;
@@ -10,8 +10,9 @@ int MOISTURE = A0;
 int MOISTURE_KNOB = 0;
 int TOGGLE = 0;
 //actuators
-int MOTOR = 0;
 int PUMP = 13;
+int stepsPerRevolution = 200;
+Stepper MOTOR(stepsPerRevolution, 3,4,5,6);
 //settings
 static const int iterdelay = 20;
 static const int TURN_RIGHT = 1;
@@ -44,6 +45,9 @@ static int count;
 static SWIVEL swivelstate;
 static int angle;
 static int verifyCount;
+const int verifyThreshold;
+static int turnDirection; //-1, 0, or 1
+const int stepsPerIteration;
 
 //calibrated values for sensors? since they're all different, may have different values...
 //let calibrated be the minimum light per sensor after turning 360
@@ -72,8 +76,12 @@ void setup() {
   running_back  = analogRead(BACK_LIGHT);
   running_left  = analogRead(LEFT_LIGHT);
   running_right = analogRead(RIGHT_LIGHT);
+  stepsPerIteration = 1;
   angle = 0;
+  verifyThreshold = 1000/iterdelay;
+  turnDirection = 0;
  //toggle is an input; motor and pump are our outputs
+  MOTOR.setSpeed(100);
   pinMode(TOGGLE, INPUT);
   pinMode(MOTOR, OUTPUT);
   pinMode(PUMP, OUTPUT);
@@ -88,17 +96,7 @@ void pump(int on_off){
   }
 }
 
-//pass in number of degrees to turn box from 0 to 360
-//for now, 0 = turn, 1 = don't
-//will need to change later
-void motor(int degrees){
- //todo: implement degrees
- if ()degrees == 0) {
-   digitalWrite(MOTOR, HIGH);
- } else {
-   digitalWrite(MOTOR, LOW);
- }
-}
+
 
 //returns an int that is the moisture reading
 int read_moisture(){
@@ -129,18 +127,17 @@ int read_light(int light_sensor){
   }
 }
 
-
 //toggle between having the box swivel towards the light or not
 //pass in value of toggle; ON is depressed. OFF is unpressed
-void toggle_swivel(int on_off) {
-  if (on_off) {
-    static SWIVEL swivelstate = SWIVEL_OFF;
+bool shouldSwivel() {
+  if (digitalRead(TOGGLE) == HIGH) {
+    return true;
   }
-  else {
-    static SWIVEL swivelstate = CALIBRATE;
-  }
+  return false;
+}
 
 //returns number of degrees box should swivel to maximize light exposure
+//not using?
 int get_number_of_degrees_to_swivel(){
   //todo: implement this
   return 0;
@@ -223,35 +220,70 @@ switch(waterstate) {
   }
  
   //FSM for swiveling
-  switch(swivelstate) {
-    case CALIBRATE:
-      //todo: implement
-    break;
-  
-    case IDLE:
-    {
+if (!shouldSwivel()) {
+  swivelstate = SWIVELOFF;
+}
+    switch(swivelstate) {
+      case CALIBRATE:
+      //todo: implement later if needed
+      swivelstate = IDLE;
+      break;
+ 
+      case IDLE:
+      {
     //todo: finish
       int front = read_light(FRONT_LIGHT);
       int back  = read_light(BACK_LIGHT);
       int left  = read_light(LEFT_LIGHT);
       int right = read_light(RIGHT_LIGHT);
-      if (front < right) {
-        swivelstate = TURNRIGHT;
+      if (front < right || front < back || front < left) {
+        swivelstate = VERIFY;
+        verifyCount = 0;
       }
       break;
     }
     case VERIFY:
-    
-    case TURNLEFT:
+
+      int front = read_light(FRONT_LIGHT);
+      int back  = read_light(BACK_LIGHT);
+      int left  = read_light(LEFT_LIGHT);
+      int right = read_light(RIGHT_LIGHT);
+      if (front < right || front < back || front < left) {
+        verifyCount++;
+      } else {
+      	verifyCount--;
+      }
+      if (verifyCount > verifyThreshold) {
+      	swivelstate = TURN;
+      } else if (verifyCount <= 0) {
+      	swivelstate = IDLE;
+      }
+      break;
+    case TURN:
 	//todo: implement
-    break;
-    case TURNRIGHT:
-	//todo: implement
+      int front = read_light(FRONT_LIGHT);
+      int back  = read_light(BACK_LIGHT);
+      int left  = read_light(LEFT_LIGHT);
+      int right = read_light(RIGHT_LIGHT);
+      
+      //front is brightest
+      if (front > right || front > back || front > left) {
+        swivelstate = IDLE;
+        turnDirection = 0;
+      //front is less than some others
+      } else if (right > left) {
+      	turnDirection = 1;
+      } else {
+      	turnDirection = -1;
+      }
+    MOTOR.step(stepsPerIteration * turnDirection);
     break;
     case SWIVELOFF:
 	//todo: implement
-    break;
+	if (shouldSwivel()) {
+    	  swivelstate = CALIBRATE;
+        }
+        break;
   }
-}
 
 
