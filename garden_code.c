@@ -2,17 +2,18 @@
 #include <Stepper.h>
 
 //sensors
-const int BACK_LIGHT_LIGHT = A2;
-const int FRONT_LIGHT = A0;
-const int RIGHT_LIGHT = A1;
-const int LEFT_LIGHT = A3;
-const int MOISTURE = 0;
-const int MOISTURE_KNOB = 0;
-const int TOGGLE = 0;
-const int MOTOR_RED    = 1;
-const int MOTOR_YELLOW = 2;
-const int MOTOR_GREEN  = 3;
-const int MOTOR_GRAY   = 4;
+const int BACK_LIGHT_LIGHT = A15;
+const int FRONT_LIGHT = A13;
+const int RIGHT_LIGHT = A12;
+const int LEFT_LIGHT = A14;
+const int MOISTURE = A11;
+const int MOISTURE_KNOB = A0;
+const int TOGGLE = 2;
+const int MOTOR_RED    = 12;
+const int MOTOR_YELLOW = 13;
+const int MOTOR_GREEN  = 10;
+const int MOTOR_GRAY   = 11;
+const int TEST_LED     = 8;
 /*
 wire label keys:
 L1 = front light
@@ -28,9 +29,9 @@ T = Toggle
 */
 
 //actuators
-int PUMP = 13;
+int PUMP = 4;
 int stepsPerRevolution = 200;
-Stepper MOTOR(stepsPerRevolution, 3,4,5,6);
+Stepper MOTOR(stepsPerRevolution, MOTOR_RED,MOTOR_YELLOW,MOTOR_GREEN,MOTOR_GRAY);
 
 //settings
 static const int iterdelay = 20;
@@ -109,9 +110,10 @@ void setup() {
 
   turnDirection = 0;
  //toggle is an input; motor and pump are our outputs
-  MOTOR.setSpeed(100);
+  MOTOR.setSpeed(5);
   pinMode(TOGGLE, INPUT);
   pinMode(MOTOR, OUTPUT);
+  pinMode(TEST_LED, OUTPUT);
   pinMode(PUMP, OUTPUT);
 }
 
@@ -194,9 +196,9 @@ int desired_moisture_level(){
   */
   //todo: process val
   int32_t val = analogRead(MOISTURE_KNOB);
-  val = (val * 500) / (1024 - val); //a value between 0 and 500 or so
+  val = (val * 1000) / (1024 - val); //a value between 0 and 500 or so
   
-  return (750 - val) //(500 = high, 0 = low)
+  return (1024 - val) //(500 = high, 0 = low)
 }
 
 // the loop function runs over and over again forever
@@ -257,6 +259,9 @@ void loop() {
   //FSM for swiveling
   if (!shouldSwivel()) {
     swivelstate = SWIVELOFF;
+    digitalWrite(TEST_LED, LOW);
+  } else {
+    digitalWrite(TEST_LED, HIGH);
   }
   
   switch(swivelstate) {
