@@ -2,13 +2,30 @@
 #include <Stepper.h>
 
 //sensors
-int BACK_LIGHT_LIGHT = 0;
-int FRONT_LIGHT = 0;
-int RIGHT_LIGHT = 0;
-int LEFT_LIGHT = 0;
-int MOISTURE = A0;
-int MOISTURE_KNOB = 0;
-int TOGGLE = 0;
+const int BACK_LIGHT_LIGHT = A2;
+const int FRONT_LIGHT = A0;
+const int RIGHT_LIGHT = A1;
+const int LEFT_LIGHT = A3;
+const int MOISTURE = 0;
+const int MOISTURE_KNOB = 0;
+const int TOGGLE = 0;
+const int MOTOR_RED    = 1;
+const int MOTOR_YELLOW = 2;
+const int MOTOR_GREEN  = 3;
+const int MOTOR_GRAY   = 4;
+/*
+wire label keys:
+L1 = front light
+L2 = right light
+L3 = left light
+L4 = back light
+MS = moisture sensor
+MR = motor red wire
+MY = motor yellow wire
+MG = motor green wire
+MGray = motor gray wire
+T = Toggle                                                                                                                                                                     
+*/
 
 //actuators
 int PUMP = 13;
@@ -169,9 +186,17 @@ int pump_on_for(int moisture_reading, int desired) {
 
 //returns desired moisture level based on knob
 int desired_moisture_level(){
-  val = analogRead(MOISTURE_KNOB);
+  /*
+  knob: 100 kOhm
+     X
+  X     .
+  100kohm resistor comes first
+  */
   //todo: process val
-  return val
+  int32_t val = analogRead(MOISTURE_KNOB);
+  val = (val * 500) / (1024 - val); //a value between 0 and 500 or so
+  
+  return (750 - val) //(500 = high, 0 = low)
 }
 
 // the loop function runs over and over again forever
