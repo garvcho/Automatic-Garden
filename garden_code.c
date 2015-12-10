@@ -2,7 +2,7 @@
 #include <Stepper.h>
 
 //sensors
-const int BACK_LIGHT_LIGHT = A15;
+const int BACK_LIGHT = A15;
 const int FRONT_LIGHT = A13;
 const int RIGHT_LIGHT = A12;
 const int LEFT_LIGHT = A14;
@@ -72,7 +72,7 @@ static SWIVEL swivelstate;
 static int rotationSteps;
 static int verifyCount;
 static int turnDirection; //-1, 0, or 1
-const int stepsPerIteration;
+const int stepsPerIteration = 1;
 
 //calibrated values for sensors? since they're all different, may have different values...
 //let calibrated be the (maximum - minimum) light per sensor after turning 360
@@ -105,7 +105,7 @@ void setup() {
   running_back  = analogRead(BACK_LIGHT);
   running_left  = analogRead(LEFT_LIGHT);
   running_right = analogRead(RIGHT_LIGHT);
-  stepsPerIteration = 1;
+  //stepsPerIteration = 1;
   rotationSteps = 0; //rotationSteps is between 0 and 199 inclusive
 
   turnDirection = 0;
@@ -198,7 +198,7 @@ int desired_moisture_level(){
   int32_t val = analogRead(MOISTURE_KNOB);
   val = (val * 1000) / (1024 - val); //a value between 0 and 500 or so
   
-  return (1024 - val) //(500 = high, 0 = low)
+  return (1024 - val); //(500 = high, 0 = low)
 }
 
 // the loop function runs over and over again forever
@@ -258,7 +258,7 @@ void loop() {
  
   //FSM for swiveling
   if (!shouldSwivel()) {
-    swivelstate = SWIVELOFF;
+    swivelstate = SWIVEL_OFF;
     digitalWrite(TEST_LED, LOW);
   } else {
     digitalWrite(TEST_LED, HIGH);
@@ -284,6 +284,7 @@ void loop() {
       break;
     }
   case VERIFY:
+  {
     int front = read_light(FRONT_LIGHT);
     int back  = read_light(BACK_LIGHT);
     int left  = read_light(LEFT_LIGHT);
@@ -299,8 +300,10 @@ void loop() {
       swivelstate = IDLE;
     }
     break;
+  }
   case TURN:
     //todo: implement
+    {
     int front = read_light(FRONT_LIGHT);
     int back  = read_light(BACK_LIGHT);
     int left  = read_light(LEFT_LIGHT);
@@ -318,7 +321,8 @@ void loop() {
     }
     MOTOR.step(stepsPerIteration * turnDirection);
     break;
-  case SWIVELOFF:
+    }
+  case SWIVEL_OFF:
     //todo: implement
     if (shouldSwivel()) {
       swivelstate = CALIBRATE;
