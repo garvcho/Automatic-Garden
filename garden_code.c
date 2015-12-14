@@ -4,7 +4,7 @@
 const int BACK_LIGHT = A15;
 const int FRONT_LIGHT = A13;
 const int RIGHT_LIGHT = A14;
-const int LEFT_LIGHT = A12;
+const int LEFT_LIGHT = A11;
 const int MOISTURE = A0;
 const int MOISTURE_KNOB = A3;
 const int TOGGLE = 14;
@@ -99,7 +99,7 @@ void setup() {
 
   turnDirection = 0;
  //toggle is an input; motor and pump are our outputs
-  MOTOR.setSpeed(60);
+  MOTOR.setSpeed(5);
   pinMode(TOGGLE, INPUT);
 //  pinMode(MOTOR, OUTPUT);
   pinMode(TEST_LED, OUTPUT);
@@ -199,6 +199,7 @@ void loop() {
   delay(2000);                  // wait for a second
   */
   delay(iterdelay); //delays the loop
+  
   //check the sensor values
   int check_front = read_light(FRONT_LIGHT);
   int check_back  = read_light(BACK_LIGHT);
@@ -222,7 +223,7 @@ void loop() {
   Serial.println("check_right");
   Serial.println(check_right);
 
-/*
+
 
   Serial.println("Check moisture");
   Serial.println(check_moisture);
@@ -244,7 +245,7 @@ void loop() {
 
   Serial.println("Steps per iteration");
   Serial.println(stepsPerIteration);
-  */
+  
   
   switch(waterstate) {
   case DETECT_MOISTURE:
